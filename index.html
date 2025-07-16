@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cropy</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            min-height: 100vh;
+            background: #222;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        #drop-area {
+            border: 2px dashed #888;
+            border-radius: 18px;
+            width: 480px;
+            height: 480px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            position: relative;
+            transition: border-color 0.2s;
+            margin-bottom: 20px;
+        }
+        #drop-area.dragover {
+            border-color: #6cf;
+        }
+        #result-img {
+            max-width: 96%;
+            max-height: 96%;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #000a;
+            background: transparent;
+        }
+        #hint {
+            color: #aaa;
+            font-size: 18px;
+            position: absolute;
+            text-align: center;
+            width: 100%;
+            top: 44%;
+            left: 0;
+            user-select: none;
+            pointer-events: none;
+        }
+        footer {
+            width: 100vw;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            text-align: center;
+            color: #777;
+            font-size: 13px;
+            background: #222;
+            padding: 8px 0 6px 0;
+            z-index: 10;
+            letter-spacing: 0.5px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="drop-area">
+        <span id="hint">Drop an image here<br>or paste (Ctrl+V)</span>
+        <img id="result-img" style="display:none;" />
+    </div>
+    <footer>
+        &copy; 2025 led-mirage &nbsp; Version 1.0.0
+    </footer>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const hint = document.getElementById('hint');
+        const resultImg = document.getElementById('result-img');
+
+        // Handle an image file dropped or pasted
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                processImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Crop the image to a center circle, output as PNG with transparent outside
+        function processImage(src) {
+            const img = new window.Image();
+            img.onload = function() {
+                // Get image dimensions
+                const w = img.width, h = img.height;
+                const size = Math.min(w, h);
+                const cx = w / 2, cy = h / 2;
+                const r = size / 2;
+
+                // Create a canvas for cropping
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Clear with transparent
+                ctx.clearRect(0, 0, size, size);
+
+                // Create circular clipping region
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(r, r, r, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.clip();
+
+                // Draw the center of the image into the circle
+                ctx.drawImage(
+                    img,
+                    cx - r, cy - r, size, size, // source rect
+                    0, 0, size, size            // destination rect
+                );
+                ctx.restore();
+
+                // Show result image
+                resultImg.src = canvas.toDataURL('image/png');
+                resultImg.style.display = '';
+                hint.style.display = 'none';
+            };
+            img.src = src;
+        }
+
+        // Drag & Drop events
+        dropArea.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+        dropArea.addEventListener('dragleave', e => {
+            dropArea.classList.remove('dragover');
+        });
+        dropArea.addEventListener('drop', e => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Paste from clipboard
+        window.addEventListener('paste', e => {
+            if (e.clipboardData && e.clipboardData.items.length) {
+                for (let i = 0; i < e.clipboardData.items.length; i++) {
+                    const item = e.clipboardData.items[i];
+                    if (item.type.startsWith('image/')) {
+                        handleFile(item.getAsFile());
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Show hint initially
+        resultImg.style.display = 'none';
+        hint.style.display = '';
+    </script>
+</body>
+</html>
