@@ -32,6 +32,10 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Release History
 
+### 1.1.0 (2025/11/30)
+
+- Added an outline option
+
 ### 1.0.0 (2025/07/16)
 
 - Initial release
